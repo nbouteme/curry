@@ -63,17 +63,32 @@ void *funalloc()
 	return (0);
 }
 
+void destroy_master_block()
+{
+	void **m;
+
+	m = get_master_block();
+	my_syscall(SYS_munmap, *m, MSTB_SIZE + FUNB_SIZE);
+	*m = 0;
+}
+
 void free_fun(void *fun)
 {
 	char *f;
 	char *fb;
 	char *m;
+	int i;
 
 	f = fun;
 	m = *get_master_block();
 	fb = m + MSTB_SIZE;
 	m += ((f - fb) / 64) / 8;
 	m[0] &= ~((1 << (f - fb) / 64) - 1);
+	i = 0;
+	while (i < (FUN_NBR / 8) && !m[i])
+		++i;
+	if (i == (FUN_NBR / 8))
+		destroy_master_block();
 }
 
 void ex_set(int v)
