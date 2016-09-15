@@ -3,12 +3,15 @@
 #include <sys/mman.h>
 #include <sys/syscall.h>
 #include "curry.h"
+#include "funalloc.h"
 
 long my_syscall();
 
 t_value curry(void *f, t_value arg)
 {
-	char *sp = (void*)my_syscall(SYS_mmap, 0, 1, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	//char *sp = (void*)my_syscall(SYS_mmap, 0, 1, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	char *sp = funalloc();
+	ex_set(false);
 	memcpy(sp,
 		   "\x41\x51"						// push %r9; push potentially garbage
 		   "\x4d\x89\xc1"					// mov %r8, %r9; "shift" each register from here to...
@@ -24,7 +27,8 @@ t_value curry(void *f, t_value arg)
 		   39);
 	memcpy(sp + 39, &arg, sizeof(arg));
 	memcpy(sp + 47, &f, sizeof(f));
-	my_syscall(SYS_mprotect, sp, 1, PROT_READ | PROT_EXEC);
+	ex_set(true);
+	//my_syscall(SYS_mprotect, sp, 1, PROT_READ | PROT_EXEC);
 	return (t_value){sp};
 }
 
